@@ -1,0 +1,12 @@
+# TODO make installation target an build arg
+# TODO make file show shebang properly
+FROM ubuntu:16.04
+RUN apt-get update && apt-get install -y strace file patchelf
+WORKDIR /instrumentation
+RUN cp /usr/bin/strace /usr/bin/file /usr/lib/x86_64-linux-gnu/libmagic.so.1 /lib/x86_64-linux-gnu/libc.so.6 /lib/x86_64-linux-gnu/libz.so.1 /lib64/ld-linux-x86-64.so.2 /usr/share/file/magic.mgc /instrumentation
+RUN patchelf --set-interpreter '/tmp/instrumentation/ld-linux-x86-64.so.2' ./file
+RUN patchelf --set-interpreter '/tmp/instrumentation/ld-linux-x86-64.so.2' ./strace
+RUN patchelf --set-rpath '$ORIGIN' /instrumentation/file
+RUN patchelf --set-rpath '$ORIGIN' /instrumentation/strace
+RUN tar czvhf instrumentation.tgz *
+CMD cat instrumentation.tgz

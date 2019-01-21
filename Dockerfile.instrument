@@ -1,0 +1,5 @@
+ARG baseimage
+FROM ${baseimage}
+RUN mkdir -p /tmp/instrumentation
+ADD instrumentation.tar.gz /tmp/instrumentation
+ENTRYPOINT ["/tmp/instrumentation/strace", "-e" , "file", "-f", "-o", "/tmp/strace_output"]
