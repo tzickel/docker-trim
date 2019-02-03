@@ -26,57 +26,44 @@ This part will explain how to first collect which files are needed in the docker
 
 ## Instrumenting an docker image for checking which files to keep
 
-In this step we will explore one option to figure out which files we need to keep in an image.
+This shows you a quick demo for how to trim the docker image redis:5
 
-Let's say we want to figure which files does the docker image redis:5.0.3 actually use.
-
-First we need a one-time step to get an generic instrumentation package, so run the get_instrumentation.sh bash script.
+If you don't have the image, let's pull it first:
 
 ```
-$ bash ./get_instrumentation.sh
-Building instrumentation file, will take awhile...
+$ docker pull redis:5
+Status: Downloaded newer image for redis:5
 ```
 
-Then we run this build command to create our instrumented image. Take notice that this new redis_instrument:5.0.3 image's entrypoint will be changed to instrument file access to /tmp/strace_output.
+First we need to create an instrumentation docker image to monitor which files are used by the image, we'll call it redis:5_instrument
 
 ```
-$ docker build . --build-arg baseimage=redis:5.0.3 -t redis_instrument:5.0.3 -f Dockerfile.instrument
-...
-Successfully tagged redis_instrument:5.0.3
+$ python docker_prep_instrument_image.py redis:5 redis:5_instrument
+redis:5_instrument
 ```
 
-Now you can create an empty file strace_output1 (If you do not do that the next step will create a directory instead, and the process won't work until you delete the directory and run this command instead):
+Let's create a file that will capture the file access (not doing this step will cause an error later on, and an empty directory will be created which will need to be deleted):
 
 ```
 $ touch strace_output1
 ```
 
-And run the docker with the command as follows (dont forget to add any required run parameters as needed):
-
+Now let's run it and capture some file access:
 ```
-$ docker run -it --rm --cap-add=SYS_PTRACE -v `pwd`/strace_output1:/tmp/strace_output redis_instrument:5.0.3 docker-entrypoint.sh redis-server
+$ docker run -it --rm --cap-add=SYS_PTRACE -v `pwd`/strace_output1:/tmp/strace_output redis:5_instrument
 7:C 21 Jan 2019 08:03:00.367 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
-...
 ```
 
-If the image is non-interactive, be sure to stop it after you've captured a good usage of it.
-
-Be sure to take notice of the original redis ENTRYPOINT (docker inspect redis:5.0.3) and use it as well, so it's input will be instrumented as well!
-
-You can produce as many strace_output runs (with different file names) as you feel needed to capture all possible uses of the image after it's trimmed.
-
-You should now have one or more strace log outputs of running your image.
-
-Let's parse the output of the strace file access to a file list (you can provide many strace output files):
+After you finish interacting with the container in a meaningful way that captures your use-cases (you can run it multiple times with a new strace_output file each time) let's parse the output (you can pass multiple output files here):
 
 ```
-$ python docker_parse_strace.py redis:5.0.3 strace_output1 > parsed_strace_output
+$ python docker_parse_strace.py redis:5 strace_output1 > parsed_strace_output
 ```
 
 Now we need to extract the dynamic loader name (if exists):
 
 ```
-$ docker run -it --entrypoint="" -v `pwd`/parsed_strace_output:/tmp/parsed_output --rm redis_instrument:5.0.3 /tmp/instrumentation/file -m /tmp/instrumentation/magic.mgc -b -L -f /tmp/parsed_output > file_output
+$ docker run -it --entrypoint="" -v `pwd`/parsed_strace_output:/tmp/parsed_output --rm redis:5_instrument /tmp/instrumentation/file -m /tmp/instrumentation/magic.mgc -b -L -f /tmp/parsed_output > file_output
 ```
 
 And add it to our list:
@@ -85,26 +72,26 @@ And add it to our list:
 $ python docker_parse_file.py file_output >> parsed_strace_output
 ```
 
-Don't forget to remove the redis_instrument:5.0.3 image after you don't need it anymore:
+Don't forget to remove the redis:5_instrument image after you don't need it anymore:
 
 ```
-$ docker rmi redis_instrument:5.0.3
+$ docker rmi redis:5_instrument
 ```
 
 ## Trimming a docker image
 
-Let's take the image redis:5.0.3 and trim it given the parsed_strace_output from the previous stage.
+Let's take the image redis:5 and trim it given the parsed_strace_output from the previous stage.
 
 First, running this command will make sure to process from a file list, the symbolic links and directories as well (that exist in the docker image):
 
 ```
-$ python docker_scan_image.py redis:5.0.3 parsed_strace_output > final_file_list
+$ python docker_scan_image.py redis:5 parsed_strace_output > final_file_list
 ```
 
 Then, we can use the output of that command (redirected to a file called final_file_list) to trim down the original docker image to a new one (which the name will be written in the end):
 
 ```
-$ python docker_trim.py redis:5.0.3 final_file_list
+$ python docker_trim.py redis:5 final_file_list
 sha256:e8f1b99ac811951fb0b746940ff3715520bf00a5ee3e37f54a4436c25afa5d8c
 ```
 
@@ -113,17 +100,17 @@ The produced docker image should have the same metadata (including ENTRYPOINT an
 If you want a saner name for the image, you can tag it (replace the hash from the previous command output):
 
 ```
-$ docker tag sha256:e8f1b99ac811951fb0b746940ff3715520bf00a5ee3e37f54a4436c25afa5d8c redis:5.0.3_trimmed
+$ docker tag sha256:e8f1b99ac811951fb0b746940ff3715520bf00a5ee3e37f54a4436c25afa5d8c redis:5_trimmed
 ```
 
 We can now compare the new image sizes:
 ```
-$ docker images redis:5.0.3
+$ docker images redis:5
 REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
-redis               5.0.3               5d2989ac9711        3 weeks ago         95MB
+redis               5                   5d2989ac9711        3 weeks ago         95MB
 
-$ docker images redis:5.0.3_trimmed
+$ docker images redis:5_trimmed
 REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
-redis               5.0.3_trimmed       e8f1b99ac811        21 minutes ago      14MB
+redis               5_trimmed           e8f1b99ac811        21 minutes ago      14MB
 ```
 We can see a reduction in size from 95MB to 14MB.

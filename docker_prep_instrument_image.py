@@ -30,7 +30,8 @@ def prep_instrument_image(image):
     entrypoint = config.get('Entrypoint')
     cmd = config.get('Cmd')
     trace_entrypoint = ["/tmp/instrumentation/strace", "-e" , "file", "-f", "-o", "/tmp/strace_output"]
-    trace_entrypoint.extend(entrypoint)
+    if entrypoint:
+        trace_entrypoint.extend(entrypoint)
     # TODO . or the python script path (show output?)
     if not os.path.exists('instrumentation.tar.gz'):
         run('./get_instrumentation.sh')
