@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 def parse_file(file_output):
     with open(file_output, 'rt') as f:
         ret = set()
