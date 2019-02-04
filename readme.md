@@ -20,6 +20,44 @@ Do not use this tool if you don't have knowledge of what the files you will be r
 
 * The image must be of a non-windows docker image, and be able to run on the host.
 
+# QuickStart
+
+You can use (and read) the script oneshot_trim.sh for easily trimming an docker image, for example here is the redis:5.0.3 image:
+```
+$ ./oneshot_trim.sh redis:5.0.3
+5.0.3: Pulling from library/redis
+Digest: sha256:b950de29d5d4e4ef9a9d2713aa1213f76486dd8f9c0a43e9e8aac72e2cfc3827
+Status: Downloaded newer image for redis:5.0.3
+Creating temporary instrumentation image
+Running image, press Ctrl-C when done (or finish the container)
+9:C 04 Feb 2019 20:26:00.466 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+... redis output ...
+9:M 04 Feb 2019 20:26:00.523 * Ready to accept connections
+... now we press ctrl-c ...
+^C9:signal-handler (1549311976) Received SIGINT scheduling shutdown...
+9:M 04 Feb 2019 20:26:16.556 # Redis is now ready to exit, bye bye...
+Processing file access instrumentation
+Removing temporary instrumentation image
+Deleted: sha256:3a417c2d29baab9c43eb64b0b3a2db8102dc84765d54d865222b614a5ea748cf
+Deleted: sha256:b7182c046c8936f26452e2b001bf776769379f1b42cdaece5dc1a91a85268df3
+Deleted: sha256:74b20939ee3a55ddf6f827b43ba6c29d68d3220f3bf619855183fb1ac1a50080
+Deleted: sha256:fde2b0d3b7ad89a4f249e9996fe9a4d27b69fe904a4c2daa1dc1c7c5e57604fe
+Deleted: sha256:bd5ca729b7e418911296869fe6c935f21ba3543d62d4c8e912a42c9fc53cc2f8
+Deleted: sha256:1848ed87456f0f29703c6c36fd1d0d4fb995f051a9857972f650bb7b68a1b027
+Creating trimmed image
+sha256:525578ca12108b7fac9bcb3d152c949a74506f606e1e1282663a5a7ccdf3e653
+Final file still exists if you want to combine it with other runs of the image: redis:5.0.3.final_tmp_file (rename it if you re-use the script in this case)
+```
+
+The trimmed image is called sha256:525578ca12108b7fac9bcb3d152c949a74506f606e1e1282663a5a7ccdf3e653 but you can tag it to any name. Read more if you want to learn on how to merge multiple runs of a docker image into one trimmed image.
+
+From the script file:
+```
+# Usage: DOCKER_ARGS="--rm -it" oneshot_trim.sh <image name> <run time parameters>
+# set DOCKER_RUN_ARGS to change the runtime parameters for docker run
+# If running in mac or windows, make sure your working directory is in a mountable directory (in mac os-x it's /Users by default)
+```
+
 # How-to
 
 This part will explain how to first collect which files are needed in the docker image, and then how to trim the docker image.
