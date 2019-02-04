@@ -19,7 +19,9 @@ STRACE_TMP_FILE="${IMAGE_NAME}.strace_tmp_file"
 # TODO check for file existance (and not directory)
 touch ${STRACE_TMP_FILE}
 # Run the instrumentation image, and output the file access i/o to STRACE_TMP_FILE
+set +e
 docker run ${DOCKER_ARGS} --cap-add=SYS_PTRACE --mount type=bind,source="`pwd`/${STRACE_TMP_FILE}",target=/tmp/strace_output ${INSTRUMENT_IMAGE} $@
+set -e
 echo "Processing file access instrumentation"
 STRACE_PARSED_TMP_FILE="${IMAGE_NAME}.strace_parsed_tmp_file"
 # Parse the strace output into a file list

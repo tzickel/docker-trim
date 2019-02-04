@@ -8,5 +8,7 @@ RUN patchelf --set-interpreter '/tmp/instrumentation/ld-linux-x86-64.so.2' ./fil
 RUN patchelf --set-interpreter '/tmp/instrumentation/ld-linux-x86-64.so.2' ./strace
 RUN patchelf --set-rpath '$ORIGIN' /instrumentation/file
 RUN patchelf --set-rpath '$ORIGIN' /instrumentation/strace
+RUN patchelf --set-rpath '$ORIGIN' /instrumentation/libmagic.so.1
+RUN patchelf --set-rpath '$ORIGIN' /instrumentation/libz.so.1
 RUN tar czvhf instrumentation.tgz *
 CMD cat instrumentation.tgz
