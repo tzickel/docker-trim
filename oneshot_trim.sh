@@ -37,9 +37,9 @@ echo "> Removing temporary instrumentation image"
 docker rmi -f ${INSTRUMENT_IMAGE}
 # Parse the file list, and create the final file list
 FINAL_TMP_FILE="${IMAGE_NAME_ESCAPED}.final_tmp_file"
+echo "> Creating trimmed image"
 python docker_scan_image.py ${IMAGE_NAME} ${STRACE_PARSED_TMP_FILE} > ${FINAL_TMP_FILE}
 # Create the trimmed image
-echo "> Creating trimmed image"
 python docker_trim.py ${IMAGE_NAME} ${FINAL_TMP_FILE}
 echo "> Final file still exists if you want to combine it with other runs of the image: ${FINAL_TMP_FILE} (rename it if you re-use the script in this case, or just delete it if you don't)"
 # Remove temporary files

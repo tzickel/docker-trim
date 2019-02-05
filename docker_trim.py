@@ -136,7 +136,7 @@ if __name__ == "__main__":
     in_image = sys.argv[1]
     trim_list = sys.argv[2:]
 
-    files_list = set(['/.dockerenv'])
+    files_list = set(['/.dockerenv', '/etc/passwd', '/etc/shadow', '/etc/group'])
     for trim_file in trim_list:
         with open(trim_file, 'rt') as f:
             for line in f:

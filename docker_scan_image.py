@@ -60,7 +60,9 @@ def filter_image(image, files_list):
             add_directories = set()
             for file_name in to_check_file_names:
                 # TODO complaint about depth level > 1 for links path
-                while file_name != '/':
+                old_file_name = None
+                while file_name != old_file_name:
+                    old_file_name = file_name
                     file_name = os.path.split(file_name)
                     fname = file_name[1]
                     file_name = file_name[0]
@@ -98,7 +100,7 @@ if __name__ == "__main__":
     in_image = sys.argv[1]
     trim_list = sys.argv[2:]
 
-    files_list = set(['/.dockerenv'])
+    files_list = set(['/.dockerenv', '/etc/passwd', '/etc/shadow', '/etc/group'])
     for trim_file in trim_list:
         with open(trim_file, 'rt') as f:
             for line in f:
