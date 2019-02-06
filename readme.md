@@ -16,6 +16,8 @@ Do not use this tool if you don't have knowledge of what the files you will be r
 
 * Python 2.7 or 3
 
+* Bash
+
 * Docker runtime that can run the image (and have a non-windows filesystem)
 
 # Quickstart
@@ -44,7 +46,7 @@ sha256:525578ca12108b7fac9bcb3d152c949a74506f606e1e1282663a5a7ccdf3e653
 > Final file still exists if you want to combine it with other runs of the image: redis:5.0.3.final_tmp_file (rename it if you re-use the script in this case, or just delete it if you don't)
 ```
 
-The trimmed image is called sha256:525578ca12108b7fac9bcb3d152c949a74506f606e1e1282663a5a7ccdf3e653 but you can tag it to any name. Read more if you want to learn on how to merge multiple runs of a docker image into one trimmed image.
+The trimmed image is called sha256:525578ca12108b7fac9bcb3d152c949a74506f606e1e1282663a5a7ccdf3e653 but you can tag it to any name (with docker tag). Read more if you want to learn on how to merge multiple runs of a docker image into one trimmed image.
 
 The script has some more usage options as it's top:
 ```
@@ -52,6 +54,48 @@ The script has some more usage options as it's top:
 # set DOCKER_ARGS to change the runtime parameters for docker run
 # If running in mac or windows, make sure your working directory is in a mountable directory (in mac os-x it's /Users by default)
 ```
+
+## Combining multiple runs into one image
+
+Let's take the previous created redis-server run from the previous example, and add redis-cli to the image (which does not exist since it was not used in that run).
+
+First let's rename the created file in the end of that stage to another name:
+```
+$ mv redis:5.0.3.final_tmp_file redis:5.0.3.first_run
+```
+
+Now let's run the oneshot script with a different command:
+```
+$ ./oneshot_trim.sh redis:5.0.3 redis-cli
+> Creating temporary instrumentation image
+> Running image, press Ctrl-C when done (or finish the container, or kill it from another console)
+Could not connect to Redis at 127.0.0.1:6379: Connection refused
+not connected> exit
+> Processing file access instrumentation
+> Removing temporary instrumentation image
+...
+Deleted: sha256:821187111b26f461a118a802828082a3f2d27b497e681792b103d0a2f46bbc29
+> Creating trimmed image
+sha256:075794a5357302403920a03a1cb7bfbd2503203cfb9e9d9a0041709293291c64
+> Final file still exists if you want to combine it with other runs of the image: redis:5.0.3.final_tmp_file (rename it if you re-use the script in this case, or just delete it if you don't)
+```
+
+Now we have 2 output instrumentation files, redis:5.0.3.first_run and redis:5.0.3.final_tmp_file, let's create a combined image:
+```
+$ python docker_trim.py redis:5.0.3 redis:5.0.3.first_run redis:5.0.3.final_tmp_file
+sha256:46073549f810194a26b24ed865fcf60fb3bfddbc349b7b91c1378d94910ea90b
+```
+
+We can delete the final list files:
+```
+$ rm redis:5.0.3.first_run redis:5.0.3.final_tmp_file
+```
+
+The newly created docker image can now run both redis-server and redis-cli.
+
+## Instrumenting an image that is running via another system (such as kubernetes)
+
+TODO document this, basically you take the temporary instrumentation image created with oneshot, and use it instead of your original one. while mapping /tmp/strace1_output to somewhere where you can retrieve the results to run the other stages of the trimming process.
 
 # How-to
 
